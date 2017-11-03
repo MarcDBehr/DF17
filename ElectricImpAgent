@@ -1,0 +1,50 @@
+#require "Salesforce.class.nut:1.1.0" 
+// ===========================================================================================================
+    const CONSUMER_KEY = "3MVG9SemV5D80oBc7o_QLEw10D62rSoeRVV5KHxl9MDHCqTFEfFqVuaiHyVVkexnfxmjUInSRY5.MCDxoa_wf";
+    const CONSUMER_SECRET = "8197293147796077110";
+    const USERNAME = "emersonIoTExplorerDemo@emerson.com";
+    const PASSWORD = "Emerson1234";
+    const SECURITY_TOKEN = "bF9azsb5lEzFjWtfmEnP2lWPH";
+// ===========================================================================================================
+
+
+function motion(data) {
+    local message = format("Data [Temp: %.2f | Humid: %.2f | Pressure: %.2f | Light: %.2f]", 
+    data.temp, data.humid, data.press,data.light);
+    sendToSF(format("%.2f",data.temp),format("%.2f",data.humid)"");
+    server.log(message);
+}
+
+function sendToSF(temperature,humidity,message) {
+    force <- Salesforce(CONSUMER_KEY, CONSUMER_SECRET);
+    force.setVersion("v40.0");
+
+    force.login(USERNAME, PASSWORD, SECURITY_TOKEN, function(err, data) {
+        if (err != null) {
+            // If there was an error, log it
+            error.log(err);
+            return;
+        }
+    
+        // If the login failed
+        if (data.result == false) {
+            server.log("Could not login ");
+            return;
+        }
+        server.log("================== Sending "+message+" with temp "+temperature+" humidity "+humidity );
+        
+        force.request( "post",
+            "sobjects/DF17__e",
+            http.jsonencode({
+                serialnumber__c = "DF17Rocks",              // Hard coded for the Sample Orchestration
+                temperature__c = temperature
+            }),
+            function(err, response) { if (err) { server.error("ERROR: " + http.jsonencode(err)); return; } server.log(http.jsonencode(response)); }
+        );
+    
+        server.log("================== COMPLETE " + time());
+    });
+}
+
+sendToSF(37,50,"Start"); // Init the orchestration
+device.on("reading.sent", motion);
